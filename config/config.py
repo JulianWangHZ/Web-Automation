@@ -1,0 +1,100 @@
+import os
+
+from typing import Dict, Any, Literal
+from dotenv import load_dotenv
+
+# load environment variables
+load_dotenv()
+
+# define supported browser types
+BrowserType = Literal['chrome', 'safari', 'firefox']
+# define supported environment types
+EnvType = Literal['dev', 'staging', 'prod']
+
+# Domain Configuration -> Both dev, staging, prod use the same domain
+DOMAIN = {
+    'dev': 'staging.inline.app',
+    'staging': 'staging.inline.app',
+    'prod': 'staging.inline.app'
+}
+
+# Get current env domain
+def get_domain(env: str = None):
+    if env is None:
+        env = os.getenv('ENV', 'staging')
+    return DOMAIN.get(env.lower(), DOMAIN['staging'])
+
+
+class Config:
+
+    def __init__(self):
+        # browser configuration
+        self.BROWSER: BrowserType = os.getenv('BROWSER', 'chrome')  # type: ignore
+        self.HEADLESS: bool = os.getenv('HEADLESS', 'False').lower() == 'true'
+        
+        # wait time configuration
+        self.DEFAULT_TIMEOUT: int = int(os.getenv('DEFAULT_TIMEOUT', '10'))
+        self.POLL_FREQUENCY: float = float(os.getenv('POLL_FREQUENCY', '0.5'))
+        self.RETRY_TIMES: int = int(os.getenv('RETRY_TIMES', '3'))
+        self.RETRY_DELAY: int = int(os.getenv('RETRY_DELAY', '2'))
+        
+        # environment configuration
+        self.ENV: EnvType = os.getenv('ENV', 'staging')  # type: ignore
+        
+        # URL configuration - based on environment setting different BASE_PATH
+        if self.ENV == 'staging':
+            default_path = '/booking/-N86uOXnWsyA-7n8EKma:inline-staging-2a466/-NEdHYAxrToGxfj4BxSw'
+        elif self.ENV == 'dev':
+            default_path = '/booking/-N86uOXnWsyA-7n8EKma:inline-staging-2a466/-NEdHYAxrToGxfj4BxSw'
+        else:
+            default_path = '/booking/-N86uOXnWsyA-7n8EKma:inline-staging-2a466/-NEdHYAxrToGxfj4BxSw'
+        self.BASE_PATH: str = os.getenv('BASE_PATH', default_path)
+        
+        # device configuration
+        self.DEVICE_TYPE: str = 'desktop'  # default device type
+        
+        # log configuration
+        self.LOG_LEVEL: str = os.getenv('LOG_LEVEL', 'INFO')
+        self.SCREENSHOT_PATH: str = os.getenv('SCREENSHOT_PATH', 'screenshots')
+        
+        # test data configuration
+        self.TEST_DATA_PATH: str = os.getenv('TEST_DATA_PATH', 'test_data')
+    
+    @property
+    def BASE_URL(self) -> str:
+        protocol = 'https://'
+        domain = get_domain(self.ENV)
+        # ensure BASE_PATH starts with / to avoid concatenation error
+        base_path = '/' + self.BASE_PATH.lstrip('/') if self.BASE_PATH else ''
+        return f"{protocol}{domain}{base_path}"
+    
+    def get_page_url(self, path: str = '') -> str:
+        if path:
+            return f"{self.BASE_URL}/{path.lstrip('/')}"
+        return self.BASE_URL
+    
+    @classmethod
+    def get_config(cls) -> Dict[str, Any]:
+        """
+        Get current environment configuration
+        
+        Returns:
+            Dict[str, Any]: Configuration dictionary
+        """
+        instance = cls()
+        return {
+            'browser': instance.BROWSER,
+            'headless': instance.HEADLESS,
+            'timeout': instance.DEFAULT_TIMEOUT,
+            'poll_frequency': instance.POLL_FREQUENCY,
+            'retry_times': instance.RETRY_TIMES,
+            'retry_delay': instance.RETRY_DELAY,
+            'env': instance.ENV,
+            'base_url': instance.BASE_URL,
+            'domain': get_domain(instance.ENV),
+            'base_path': instance.BASE_PATH,
+            'log_level': instance.LOG_LEVEL,
+            'screenshot_path': instance.SCREENSHOT_PATH,
+            'test_data_path': instance.TEST_DATA_PATH,
+            'device_type': instance.DEVICE_TYPE
+        } 
