@@ -1,0 +1,234 @@
+import time  
+
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions
+from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException, ElementNotInteractableException
+from config.config import Config
+from pages.base_actions.base_utils import BaseUtils
+
+
+class BaseAction:
+    def __init__(self, driver):
+        self.driver = driver
+        self.wait = WebDriverWait(driver, 10)
+        self.config = Config()
+        self.utils = BaseUtils()
+
+    def open_url(self, url=None, path=None):
+        """
+        Opens the specified URL in the browser.
+        
+        Args:
+            url: Full URL to open. If None, uses BASE_URL from config
+            path: Path to append to BASE_URL, e.g. 'login' or 'products'
+        """
+        if url:
+            target_url = url
+        else:
+            target_url = self.config.get_page_url(path or '')
+            
+        self.driver.get(target_url)
+        self.driver.implicitly_wait(10)
+
+    def find_element(self, locator_type, locator_value):
+        """
+        Finds the element with explicit wait and returns it
+        """
+        return self.wait.until(
+            expected_conditions.presence_of_element_located((locator_type, locator_value))
+        )
+
+    def is_element_visible(self, locator_type, locator_value):
+        """
+        Checks if the element is visible and returns the boolean value
+        """
+        try:
+            self.wait.until(
+                expected_conditions.visibility_of_element_located((locator_type, locator_value))
+            )
+            return True
+        except TimeoutException:
+            return False
+
+    def click_element(self, locator_type, locator_value):
+            """
+            Click on a clickable element with fallback to JavaScript click if standard click fails
+            """
+            try:
+                # Try standard click first
+                element = self.wait.until(
+                    expected_conditions.element_to_be_clickable((locator_type, locator_value))
+                )
+                element.click()
+            except (TimeoutException, ElementClickInterceptedException, ElementNotInteractableException):
+                # If standard click fails, try JavaScript click
+                element = self.driver.find_element(locator_type, locator_value)
+                self.driver.execute_script("arguments[0].click();", element)
+
+    def click_if_exists(self, locator_type, locator_value):
+        """
+        Click if element exists
+        """
+        if self.is_element_visible(locator_type, locator_value):
+            self.click_element(locator_type, locator_value)
+            return True
+        return False
+
+    def send_keys_to_element(self, locator_type, locator_value, text):
+        """
+        Sends keyboard input to the specified element.
+        Only clear the field if it has a value.
+        After clearing, verify that the field has been cleared.
+        """
+        element = self.find_element(locator_type, locator_value)
+
+        # Get the current field value
+        current_value = element.get_attribute('value')
+
+        # Only clear the field if it has a value
+        if current_value:
+            element.clear()
+
+            # After clearing, verify that the field has been cleared
+            max_attempts = 5
+            attempts = 0
+            while attempts < max_attempts:
+                cleared_value = element.get_attribute('value')
+                if not cleared_value or cleared_value.strip() == '':
+                    break  # Successfully cleared, the field is empty
+
+                # Try to clear again
+                element.clear()
+                attempts += 1
+                time.sleep(0.2)
+
+            if attempts == max_attempts:
+                # If the field cannot be cleared after multiple attempts, record a warning and continue
+                print(f"Warning: Unable to clear field {locator_type}, {locator_value}, current value: {element.get_attribute('value')}")
+
+        # Ensure the input is a string type
+        text = str(text)
+        element.send_keys(text)
+
+    def get_element_text(self, locator_type, locator_value):
+        """
+        Get element text
+        """
+        element = self.find_element(locator_type, locator_value)
+        return element.text
+
+    def wait_for_element_visible(self, locator_type, locator_value):
+        """
+        Waits until the specified element becomes visible
+        Raises TimeoutException with detailed error message if element not found
+        """
+        try:
+            self.wait.until(
+                expected_conditions.visibility_of_element_located((locator_type, locator_value))
+            )
+        except TimeoutException:
+            raise TimeoutException(
+                f"Element not found or not visible:\n"
+                f"Locator type: {locator_type}\n"
+                f"Locator value: {locator_value}\n"
+            )
+
+    def wait_for_element_clickable(self, locator_type, locator_value):
+        """
+        Waits until the specified element becomes clickable
+        """
+        try:
+            self.wait.until(
+                expected_conditions.element_to_be_clickable((locator_type, locator_value))
+            )
+            return True
+        except TimeoutException:
+            return False
+
+    def wait_for_element_present(self, locator_type, locator_value, timeout=3):
+        """
+        Wait for the element to be present, not necessarily visible
+        """
+        WebDriverWait(self.driver, timeout, poll_frequency=0.1).until(
+            expected_conditions.presence_of_element_located((locator_type, locator_value))
+        )
+        return True
+
+    def verify_element_text(self, locator_type, locator_value, expected_text):
+        actual_text = self.get_element_text(locator_type, locator_value)
+        return actual_text == expected_text
+
+    def verify_element_visible(self, locator_type, locator_value):
+        return self.is_element_visible(locator_type, locator_value)
+
+    def scroll_to_element(self, locator_type, locator_value):
+        """
+        Scrolls the page until the specified element is visible.
+        """
+        element = self.find_element(locator_type, locator_value)
+        self.driver.execute_script("arguments[0].scrollIntoView(true);", element)
+        return element
+
+    def wait_for_element_disappears(self, locator_type, locator_value, timeout=10):
+        try:
+            WebDriverWait(self.driver, timeout).until_not(
+                expected_conditions.presence_of_element_located((locator_type, locator_value))
+            )
+            return True
+        except TimeoutException:
+            raise AssertionError(f"元素在 {timeout} 秒內未消失: {locator_type}, {locator_value}")
+
+    def refresh_page(self):
+        self.driver.refresh()
+        self.driver.implicitly_wait(10)
+
+    def refresh_and_wait_for_element(self, locator_type, locator_value, timeout=10):
+        """
+        Refresh the page and wait for the specified element to appear
+
+        Args:
+            locator_type: Locator type
+            locator_value: Locator value
+            timeout: Timeout in seconds
+        """
+        self.driver.refresh()
+        wait = WebDriverWait(self.driver, timeout)
+        wait.until(
+            expected_conditions.visibility_of_element_located((locator_type, locator_value))
+        )
+
+    def wait_for_element_has_value(self, locator_type, locator_value, timeout=10):
+        """
+        Wait for the element to have a value, until the element's value attribute is not empty or timeout
+
+        Args:
+            locator_type: Locator type
+            locator_value: Locator value
+            timeout: Timeout in seconds
+
+        Returns:
+            bool: True if the element has a value before timeout, False otherwise
+
+        Raises:
+            TimeoutException: If the timeout is exceeded and raise_exception is True
+        """
+        # First ensure the element exists and is visible
+        self.wait_for_element_visible(locator_type, locator_value)
+
+        # Get the element
+        element = self.find_element(locator_type, locator_value)
+
+        # Set the timeout
+        end_time = time.time() + timeout
+
+        # Loop to check if the element has a value
+        while time.time() < end_time:
+            current_value = element.get_attribute('value')
+            if current_value and current_value.strip():
+                return True
+
+            # Wait for a short period of time and check again
+            time.sleep(0.5)
+
+        # Timeout still no value, raise an exception
+        raise TimeoutException(f"Element in {timeout} seconds did not get a value: {locator_type}, {locator_value}")
