@@ -56,9 +56,6 @@ class Config:
         # log configuration
         self.LOG_LEVEL: str = os.getenv('LOG_LEVEL', 'INFO')
         self.SCREENSHOT_PATH: str = os.getenv('SCREENSHOT_PATH', 'screenshots')
-        
-        # test data configuration
-        self.TEST_DATA_PATH: str = os.getenv('TEST_DATA_PATH', 'test_data')
     
     @property
     def BASE_URL(self) -> str:
@@ -95,6 +92,5 @@ class Config:
             'base_path': instance.BASE_PATH,
             'log_level': instance.LOG_LEVEL,
             'screenshot_path': instance.SCREENSHOT_PATH,
-            'test_data_path': instance.TEST_DATA_PATH,
             'device_type': instance.DEVICE_TYPE
         } 
