@@ -43,11 +43,11 @@ class Config:
         
         # URL configuration - based on environment setting different BASE_PATH
         if self.ENV == 'staging':
-            default_path = '/booking/-N86uOXnWsyA-7n8EKma:inline-staging-2a466/-NEdHYAxrToGxfj4BxSw'
+            default_path = '/order/-N86uOXnWsyA-7n8EKma:inline-staging-2a466/-NEdHYAxrToGxfj4BxSw'
         elif self.ENV == 'dev':
-            default_path = '/booking/-N86uOXnWsyA-7n8EKma:inline-staging-2a466/-NEdHYAxrToGxfj4BxSw'
+            default_path = '/order/-N86uOXnWsyA-7n8EKma:inline-staging-2a466/-NEdHYAxrToGxfj4BxSw'
         else:
-            default_path = '/booking/-N86uOXnWsyA-7n8EKma:inline-staging-2a466/-NEdHYAxrToGxfj4BxSw'
+            default_path = '/order/-N86uOXnWsyA-7n8EKma:inline-staging-2a466/-NEdHYAxrToGxfj4BxSw'
         self.BASE_PATH: str = os.getenv('BASE_PATH', default_path)
         
         # device configuration
