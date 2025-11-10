@@ -67,8 +67,8 @@ def complex_function(self):
 ## 3. Locator Rules
 
 ### Using Playwright + Selector Conversion
-- **Prioritize Playwright locator format**, then use `selector()` function to convert to Selenium format
-- Use `utils.locator_converter.selector()` function for conversion
+- **Author locators in Playwright format**, then convert to Selenium tuple at the locator layer
+- Use `utils.locator_converter.selector()` inside locator classes, not in page objects or tests
 - Supported formats:
   - `page.locator('[data-testid="button"]')`
   - `page.get_by_test_id('button')`
@@ -77,23 +77,20 @@ def complex_function(self):
 ```python
 from utils.locator_converter import selector
 
-class OrderPage(BaseAction):
-    def __init__(self, driver):
-        super().__init__(driver)
-        # Use Playwright format locator, then convert with selector()
-        self.checkout_button = selector('page.locator("[data-testid=\\"checkout-button\\"]")')
-        self.delivery_option = selector('page.get_by_test_id("delivery-option")')
-        self.address_input = selector('[data-testid="address-input"]')
-    
-    def click_checkout(self):
-        self.click_element(*self.checkout_button)
+
+class OrderPageLocators:
+    """Playwright selectors converted once for Selenium usage."""
+
+    CHECKOUT_BUTTON = selector('page.locator("[data-testid=\\"checkout-button\\"]")')
+    DELIVERY_OPTION = selector('page.get_by_test_id("delivery-option")')
+    ADDRESS_INPUT = selector('[data-testid="address-input"]')
 ```
 
 ### Locator Best Practices
-- Prioritize using `data-testid` attribute for element location
-- Avoid fragile locators (e.g., absolute XPath, overly complex CSS selectors)
-- Define locators in `__init__` method for easy maintenance and reuse
-- Use descriptive locator variable names
+- Store locators in dedicated classes under the `locators/` package
+- Keep locator names descriptive and grouped by page
+- Prefer stable attributes such as `data-testid`
+- Avoid fragile locators (e.g., brittle XPath, overly complex CSS selectors)
 
 ## 4. Page Object Pattern Rules
 
@@ -109,25 +106,25 @@ class OrderPage(BaseAction):
 
 ```python
 from pages.base_actions.base_action import BaseAction
-from utils.locator_converter import selector
+from locators.order_page_locators import OrderPageLocators
 
-class CheckoutPage(BaseAction):
-    def __init__(self, driver):
-        super().__init__(driver)
-        self.confirm_button = selector('page.locator("[data-testid=\\"confirm-button\\"]")')
-        self.address_field = selector('[data-testid="address-field"]')
-    
-    def click_confirm(self):
-        # Use BaseAction's click_element, includes waiting and error handling
-        self.click_element(*self.confirm_button)
-    
+
+class OrderPage(BaseAction):
+    def open(self):
+        self.open_url(url=self.config.BASE_URL)
+
+    def wait_for_loaded(self):
+        self.wait_for_element_visible(*OrderPageLocators.RESTAURANT_HEADING)
+        self.wait_for_element_visible(*OrderPageLocators.DELIVERY_PROMPT)
+
+    def click_checkout(self):
+        self.click_element(*OrderPageLocators.CHECKOUT_BUTTON)
+
     def input_address(self, address):
-        # Use BaseAction's send_keys_to_element, includes clearing logic
-        self.send_keys_to_element(*self.address_field, address)
-    
+        self.send_keys_to_element(*OrderPageLocators.ADDRESS_INPUT, address)
+
     def is_confirm_button_enabled(self):
-        # Use BaseAction's wait methods to ensure stability
-        return self.wait_for_element_clickable(*self.confirm_button, timeout=5)
+        return self.wait_for_element_clickable(*OrderPageLocators.CONFIRM_BUTTON, timeout=5)
 ```
 
 ### Page Object Method Design
@@ -137,61 +134,34 @@ class CheckoutPage(BaseAction):
 
 ## 5. Test Writing Rules
 
-### Using Parser to Pass Values
-- Use `parsers.parse()` or `parsers.cfparse()` in step definitions to parse parameters
-- For table data, use `parsers.parse()` with `TypeParser`
-- Support parameterized tests to improve test maintainability
+### Step Definitions & Test Structure
+- Define BDD steps alongside the test module (e.g., `tests/test_order_page.py`)
+- Instantiate the required Page Object inside each step function; do not rely on returning it from previous steps
+- Keep step functions concise and delegate UI logic to Page Objects
+- When parsing dynamic values, continue使用 `parsers.parse()` 或 `parsers.cfparse()`（依情境需要）
+- Include scenario comments (e.g., `# Scenario: ... @tags`) above step functions to improve readability
+- Name step functions after what they verify/do (e.g., `verify_order_page_loaded`) rather than copying the step text verbatim
 
 ```python
-from pytest_bdd import given, when, then, parsers
+from pytest_bdd import given, scenarios, then
 from pages.order_page import OrderPage
-from pages.checkout_page import CheckoutPage
 
-@given(parsers.parse('I have opened the Food Ordering page'))
+scenarios("features/order_page.feature")
+
+
+@given("I open the Food Ordering company page")
 def open_food_ordering_page(browser):
-    order_page = OrderPage(browser)
-    order_page.open_url()
+    page = OrderPage(browser)
+    page.open()
+    page.wait_for_loaded()
 
-@when(parsers.parse('I select "{option}"'))
-def select_delivery_option(browser, option):
-    order_page = OrderPage(browser)
-    order_page.select_delivery_option(option)
 
-@when(parsers.parse('I input postal code "{postal_code}" at address picker'))
-def input_postal_code(browser, postal_code):
-    order_page = OrderPage(browser)
-    order_page.input_postal_code(postal_code)
-
-@when(parsers.cfparse('I input credit card information:\n{credit_card_data}', 
-                      extra_types=dict(credit_card_number=str, cardholder_name=str, 
-                                      expiration_date=str, security_code=str)))
-def input_credit_card_info(browser, credit_card_data):
-    checkout_page = CheckoutPage(browser)
-    checkout_page.input_credit_card(
-        card_number=credit_card_data['Credit Card Number'],
-        cardholder_name=credit_card_data['Cardholder Name'],
-        expiration_date=credit_card_data['Expiration Date'],
-        security_code=credit_card_data['Security Code']
-    )
-```
-
-### Step Definitions Best Practices
-- One step definition should correspond to one clear operation
-- Use Page Object methods, avoid directly manipulating driver in step definitions
-- Keep step definitions concise, complex logic should be in Page Objects
-- Use appropriate fixtures (e.g., `browser`) to manage test state
-
-```python
-# ❌ Bad: Directly manipulate driver in step definition
-@when('I click checkout button')
-def click_checkout(browser):
-    browser.find_element(By.CSS_SELECTOR, '[data-testid="checkout"]').click()
-
-# ✅ Good: Use Page Object
-@when('I click checkout button')
-def click_checkout(browser):
-    checkout_page = CheckoutPage(browser)
-    checkout_page.click_checkout()
+# Scenario: Open Food Ordering company page @successful_order_page_load @order_page
+@then("the page should display the company's food ordering options and relevant information")
+def verify_order_page_content(browser):
+    page = OrderPage(browser)
+    assert page.get_restaurant_name().strip()
+    assert page.is_delivery_prompt_visible()
 ```
 
 ## 6. Error Handling
@@ -272,3 +242,4 @@ Before submitting code, ensure:
 - [ ] No duplicate code
 - [ ] Error handling is appropriate
 - [ ] Test data meets format requirements
+
