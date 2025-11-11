@@ -277,7 +277,36 @@ class BaseAction:
             )
             return True
         except TimeoutException:
-            raise AssertionError(f"元素在 {timeout} 秒內未消失: {locator_type}, {locator_value}")
+            raise AssertionError(f"Element does not disappear in {timeout} seconds: {locator_type}, {locator_value}")
+
+    def wait_for_element_text_contains(self, locator_type, locator_value, expected_text, timeout=10):
+        try:
+            WebDriverWait(self.driver, timeout).until(
+                expected_conditions.text_to_be_present_in_element(
+                    (locator_type, locator_value), expected_text
+                )
+            )
+            return True
+        except TimeoutException as exc:
+            raise AssertionError(
+                f"Element text does not contain the expected text: {expected_text} in {timeout} seconds. "
+                f"Locator: ({locator_type}, {locator_value})"
+            ) from exc
+
+    def wait_for_element_text_not_contains(self, locator_type, locator_value, unexpected_text, timeout=10):
+        wait = WebDriverWait(self.driver, timeout)
+        try:
+            wait.until_not(
+                expected_conditions.text_to_be_present_in_element(
+                    (locator_type, locator_value), unexpected_text
+                )
+            )
+            return True
+        except TimeoutException as exc:
+            raise AssertionError(
+                f"Element text still contains the unexpected text: {unexpected_text} in {timeout} seconds. "
+                f"Locator: ({locator_type}, {locator_value})"
+            ) from exc
 
     def refresh_page(self):
         self.driver.refresh()

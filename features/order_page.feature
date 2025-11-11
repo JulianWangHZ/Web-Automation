@@ -12,14 +12,13 @@ Feature: Order Page - Restaurant Order Page with Delivery Selection
   @successful_delivery_selection @order_page
   Scenario: Select delivery option from Delivery/Takeout switcher
     Given I have opened the Food Ordering page
-    When I see the Delivery/Takeout switcher
     Then the Delivery/Takeout switcher should be visible
     And the switcher should allow me to select my desired service type
-    
     When I select "Delivery"
-    Then I should be able to select the "Delivery" option from the Delivery/Takeout switcher
-    And the address picker switcher should be displayed
-    And the address picker should allow me to proceed with address selection
+    Then the delivery prompt message should be visible
+    When I select "Takeout"
+    Then the delivery prompt message should not be visible
+  
 
   @successful_postal_code_confirmation @order_page
   Scenario: Input postal code and confirm delivery address

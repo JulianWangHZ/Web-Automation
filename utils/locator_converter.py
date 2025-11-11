@@ -30,17 +30,20 @@ def _clean_escaped_quotes(text: str) -> str:
 def _process_page_locator(selector_str: str) -> str:
     """Process page.locator selector"""
     # Extract selector part
-    selector_str = selector_str.replace('page.locator(', '').replace(')', '')
+    prefix = 'page.locator('
+    selector_body = selector_str[len(prefix):]
+    if selector_body.endswith(')'):
+        selector_body = selector_body[:-1]
     
     # Process .first method
-    if '.first' in selector_str:
-        selector_str = selector_str.split('.first')[0]
+    if '.first' in selector_body:
+        selector_body = selector_body.split('.first')[0]
         
     # Process .nth() method
-    if '.nth(' in selector_str:
-        selector_str = selector_str.split('.nth(')[0]
+    if '.nth(' in selector_body:
+        selector_body = selector_body.split('.nth(')[0]
         
-    return _clean_quotes(selector_str)
+    return _clean_quotes(selector_body)
 
 def _get_selenium_locator(selector_str: str) -> tuple:
     """Return corresponding Selenium locator based on selector type"""

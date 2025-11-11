@@ -139,29 +139,36 @@ class OrderPage(BaseAction):
 - Instantiate the required Page Object inside each step function; do not rely on returning it from previous steps
 - Keep step functions concise and delegate UI logic to Page Objects
 - When parsing dynamic values, continue使用 `parsers.parse()` 或 `parsers.cfparse()`（依情境需要）
-- Include scenario comments (e.g., `# Scenario: ... @tags`) above step functions to improve readability
+- Include scenario comments (e.g., `# Scenario: ... @tags`) above the first step (usually the `@given`) to improve readability
 - Name step functions after what they verify/do (e.g., `verify_order_page_loaded`) rather than copying the step text verbatim
 
 ```python
-from pytest_bdd import given, scenarios, then
+from pytest_bdd import given, scenarios, when, then, parsers
 from pages.order_page import OrderPage
 
-scenarios("features/order_page.feature")
+scenarios("../features/order_page.feature")
 
 
+# Scenario: Open Food Ordering company page @successful_order_page_load @order_page
 @given("I open the Food Ordering company page")
 def open_food_ordering_page(browser):
     page = OrderPage(browser)
     page.open()
-    page.wait_for_loaded()
+    page.wait_for_page_loaded()
 
 
-# Scenario: Open Food Ordering company page @successful_order_page_load @order_page
 @then("the page should display the company's food ordering options and relevant information")
 def verify_order_page_content(browser):
     page = OrderPage(browser)
     assert page.get_restaurant_name().strip()
     assert page.is_delivery_prompt_visible()
+
+
+@then("the delivery prompt should not be visible")
+def verify_delivery_prompt_not_visible(browser):
+    page = OrderPage(browser)
+    page.select_service_type("Takeout")
+    assert page.is_delivery_prompt_hidden()
 ```
 
 ## 6. Error Handling
@@ -242,4 +249,5 @@ Before submitting code, ensure:
 - [ ] No duplicate code
 - [ ] Error handling is appropriate
 - [ ] Test data meets format requirements
+
 
