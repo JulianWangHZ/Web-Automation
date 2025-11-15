@@ -1,6 +1,6 @@
 # Web 自動化測試套件
 
-_[英文說明請見此](README.md)_
+> 🌐 本文件亦提供 [English version](README.md)。
 
 這是一套為 Inline 訂餐體驗打造的端對端自動化框架。  
 除了既有的 Selenium + pytest-bdd 回歸腳本，也可透過 Playwright MCP 進行即時探索與除錯。

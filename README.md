@@ -1,6 +1,6 @@
 # Web Automation Test Suite
 
-_[Read the Mandarin version](README.zh-TW.md)_
+> 🌐 This guide is also available in [Mandarin](README.zh-TW.md).
 
 A Python-based end-to-end automation suite for Inline’s ordering experience.  
 It combines classic Selenium + pytest-bdd scenarios with Playwright MCP-powered exploratory runs so you can validate both scripted and ad-hoc flows.
