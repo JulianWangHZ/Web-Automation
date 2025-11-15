@@ -15,6 +15,8 @@ alwaysApply: true
 - Constants use UPPER_SNAKE_CASE (e.g., `MAX_WAIT_TIME`)
 - Use blank lines to separate standard library, third-party, and local library imports
 - Use meaningful variable names, avoid single-letter variables (except loop counters)
+- For functions/methods with no return value, omit the `-> None` annotation; only specify return
+  types when the function actually returns a value.
 
 ### DRY Principle (Don't Repeat Yourself)
 - Avoid duplicate code, extract repeated logic into functions or methods

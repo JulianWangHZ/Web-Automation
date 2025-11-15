@@ -10,8 +10,8 @@ from pages.base_actions.base_utils import BaseUtils
 class BaseAction:
     def __init__(self, driver):
         self.driver = driver
-        self.wait = WebDriverWait(driver, 10)
         self.config = Config()
+        self.wait = WebDriverWait(driver, self.config.DEFAULT_TIMEOUT)
         self.utils = BaseUtils()
 
     def open_url(self, url=None, path=None):

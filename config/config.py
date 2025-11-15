@@ -33,7 +33,7 @@ class Config:
         self.HEADLESS: bool = os.getenv('HEADLESS', 'False').lower() == 'true'
         
         # wait time configuration
-        self.DEFAULT_TIMEOUT: int = int(os.getenv('DEFAULT_TIMEOUT', '10'))
+        self.DEFAULT_TIMEOUT: int = int(os.getenv('DEFAULT_TIMEOUT', '20'))
         self.POLL_FREQUENCY: float = float(os.getenv('POLL_FREQUENCY', '0.5'))
         self.RETRY_TIMES: int = int(os.getenv('RETRY_TIMES', '3'))
         self.RETRY_DELAY: int = int(os.getenv('RETRY_DELAY', '2'))

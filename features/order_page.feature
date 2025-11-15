@@ -29,5 +29,4 @@ Feature: Order Page - Restaurant Order Page with Delivery Selection
     When I select the searched address and confirm address
     Then I should be able to successfully select and confirm the address
     And the interface should reflect the chosen delivery address
-    And an "Edit" option should be provided, enabling me to make changes if necessary
-
+    And an "Edit" option should be provided after confirming the address
